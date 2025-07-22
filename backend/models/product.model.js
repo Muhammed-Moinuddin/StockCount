@@ -1,6 +1,6 @@
 import mongoose, {Schema} from "mongoose";
 
-const productSchema = new mongoose.Schema({
+const productSchema = new Schema({
     name: {
         type: String,
         required: true,
@@ -15,10 +15,14 @@ const productSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    store: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Store",
+        required: true
+    },
     sku: {
         type: String,
         required: true,
-        unique: true,
         trim: true
     },
     costPrice: {
@@ -43,5 +47,8 @@ const productSchema = new mongoose.Schema({
 }, {
     timestamps: true,
 });
+
+//compound index ensures sku + store uniqueness
+productSchema.index({ store: 1, sku: 1 }, { unique: true });
 
 export const Product = mongoose.model("Product", productSchema);

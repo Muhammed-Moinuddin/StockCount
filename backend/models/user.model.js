@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
-import {ADMIN, STAFF} from "../constants.js";
+import { ROLES } from "../constants.js";
+
+const { ADMIN, STAFF } = ROLES;
 const { Schema } = mongoose;
 
 
@@ -34,6 +36,15 @@ const userSchema = new Schema({
         enum: [ADMIN, STAFF],
         default: STAFF,
         required: true
+    },
+    store: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Store",
+        required: true
+    },
+    isOwner: {
+        type: Boolean,
+        default: false // only the first admin that creates the store is owner
     },
     refreshToken: {
         type: String
