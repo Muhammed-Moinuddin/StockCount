@@ -7,6 +7,10 @@ const storeSchema = new mongoose.Schema({
         trim: true,
         minlength: 2
     },
+    address: {
+        type: String,
+        trim: true,
+    },
     //store code for joining
     code: {
         type: String,
