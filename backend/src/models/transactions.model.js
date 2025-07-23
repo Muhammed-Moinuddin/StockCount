@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { TRANSACTION_TYPE, PAYMENT_STATUS, PARTY_TYPES } from "../constants";
+import { TRANSACTION_TYPE, PAYMENT_STATUS, PARTY_TYPES } from "../../constants";
 
 const { SALE, PURCHASE } = TRANSACTION_TYPE;
 const {PAID, UNPAID, PARTIAL} = PAYMENT_STATUS;
