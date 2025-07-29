@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ROLES } from "../constants.js";
+import {ROLES} from "../../constants.js"
 
 const { ADMIN, STAFF } = ROLES;
 const { Schema } = mongoose;
