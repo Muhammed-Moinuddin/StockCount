@@ -4,9 +4,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { Store } from "../models/store.model.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import {ROLES} from "../../constants.js"
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+
+const { ADMIN, STAFF } = ROLES;
 
 export const signupWithNewStore = asyncHandler( async(req, res) => {
     //signup steps.
@@ -37,7 +40,7 @@ export const signupWithNewStore = asyncHandler( async(req, res) => {
     )
 
     //Creating verification url
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-admin?token=${verificationToken}`;
+    const verifyUrl = `${process.env.API_BASE_URL}/api/auth/verify-admin?token=${verificationToken}`;
 
     //using sendEmail Utility to send verification url to super admin
     await sendEmail({
@@ -57,3 +60,51 @@ export const signupWithNewStore = asyncHandler( async(req, res) => {
   
       return res.status(200).json(new ApiResponse(200, "Verification email sent to Super Admin for approval."));
 });
+
+export const verifyAdminNewStore = asyncHandler( async(req, res) => {
+
+    //req mai sai token nikala
+    const { token } = req.query;
+
+    //us token ko decode kia
+    const signupData = jwt.verify(token, process.env.JWT_SECRET);
+    const {username, fullname, email, password, storeName, storeAddress} = signupData;
+
+    //data ko check kia empty tou nhi
+    if (!username || !fullname || !email || !password || !storeName || !storeAddress) {
+        throw new ApiError(400, "Token is missing required fields");
+    }
+
+    //dekha already created tou nhi hai
+    const userExists = await User.findOne({ $or: [{username}, {email}]});
+    const storeExists = await Store.findOne({name: storeName});
+    if (userExists || storeExists) {
+        throw new ApiError(409, "User or Store already exists");
+    };
+
+    //generate unique store code.
+    const code = crypto.randomBytes(4).toString("hex"); //8-char code
+
+    //Store or user create krna
+    const newStore = await Store.create({
+        name: storeName,
+        code,
+        address: storeAddress,
+        owner: null
+    });
+
+    const newUser = await User.create({
+        username,
+        fullname,
+        email,
+        password,
+        role: ADMIN,
+        isOwner: true,
+        store: newStore._id,
+    });
+
+    newStore.owner = newUser._id;
+    await newStore.save();
+
+    res.status(200).json(new ApiResponse(201, "Store and Admin created successfully."));
+})  

@@ -4,6 +4,7 @@ const storeSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
+        unique: true,
         trim: true,
         minlength: 2
     },
@@ -23,7 +24,7 @@ const storeSchema = new mongoose.Schema({
     owner: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
+        required: false,
     }
 }, {
     timestamps: true,
