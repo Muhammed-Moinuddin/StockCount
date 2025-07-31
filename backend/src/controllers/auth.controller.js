@@ -11,6 +11,7 @@ import crypto from "crypto";
 
 const { ADMIN, STAFF } = ROLES;
 
+//Admin request with creation of new store.
 export const signupWithNewStore = asyncHandler( async(req, res) => {
     //signup steps.
     //take data from req body
@@ -40,7 +41,7 @@ export const signupWithNewStore = asyncHandler( async(req, res) => {
     )
 
     //Creating verification url
-    const verifyUrl = `${process.env.API_BASE_URL}/api/auth/verify-admin?token=${verificationToken}`;
+    const verifyUrl = `${process.env.API_BASE_URL}/api/auth/verify-admin-new-store?token=${verificationToken}`;
 
     //using sendEmail Utility to send verification url to super admin
     await sendEmail({
@@ -61,6 +62,7 @@ export const signupWithNewStore = asyncHandler( async(req, res) => {
       return res.status(200).json(new ApiResponse(200, "Verification email sent to Super Admin for approval."));
 });
 
+//Verifying Admin & store creation request from Super Admin
 export const verifyAdminNewStore = asyncHandler( async(req, res) => {
 
     //req mai sai token nikala
@@ -107,4 +109,66 @@ export const verifyAdminNewStore = asyncHandler( async(req, res) => {
     await newStore.save();
 
     res.status(200).json(new ApiResponse(201, "Store and Admin created successfully."));
-})  
+});
+
+export const signupWithExistingStore = asyncHandler( async(req, res) => {
+    //Get data from the request.
+    const {username, fullname, email, password, storeCode, storeName, role} = req.body;
+
+    //Check everything is provided.
+    if (!username || !fullname || !email || !password || !storeCode || !storeName || !role ) {
+        throw new ApiError(400, "All fields are required.");
+    }
+
+    //checking the role
+    const normalizedRole = role.trim().toUpperCase();
+    if(!Object.values(ROLES).includes(normalizedRole)){
+        throw new ApiError(400, "Invalid role selected.");
+    }
+
+    //Find store by code.
+    const store = await Store.findOne({
+        $and: [{code: storeCode}, {name: storeName}]
+    }).populate("owner");
+    if(!store){
+        throw new ApiError(404, "Store Not found");
+    }
+
+    //Check does user already exists.
+    const existingUser = await User.findOne({ $or: [{username}, {email}], store: store._id});
+    if (existingUser) {
+        throw new ApiError(409, "Username or email already exists in store");
+    }
+
+    //hashing password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    //creating verificationToken
+    const token = jwt.sign(
+        {username, fullname, email, password: hashedPassword, role: normalizedRole, storeId: store._id},
+        process.env.JWT_SECRET,
+        {expiresIn: '1d'});
+
+    //creating verification Url
+    const verifyUrl = `${process.env.API_BASE_URL}/api/auth/verify-join-existing-store?token=${token}`;
+
+    //using sendEmail Utility to send verification url to super admin
+    await sendEmail({
+        to: store.owner.email,
+        subject: "Approval to join Store",
+        html: `
+          <h3>Approval to join Store</h3>
+          <p>A user is requesting to join store:</p>
+          <ul>
+            <li><b>Username:</b> ${username}</li>
+            <li><b>Email:</b> ${email}</li>
+            <li><b>For Role:</b> ${role}</li>
+          </ul>
+          <a href="${verifyUrl}">Click to Approve</a>
+        `,
+      });
+  
+      return res.status(200).json(new ApiResponse(200, "Verification email sent to store owner for approval."));
+});
+
+export const verifyJoinExistingStore = asyncHandler(() => {});
