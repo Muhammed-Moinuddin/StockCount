@@ -18,16 +18,20 @@ export const signupWithNewStore = asyncHandler( async(req, res) => {
     const {username, fullname, email, password, storeName, storeAddress} = req.body;
 
     //check the data
-    if(!username, !fullname, !email, !password, !storeName, !storeAddress){
+    if(!username || !fullname || !email || !password || !storeName || !storeAddress){
         throw new ApiError(500, "All fields are required");
     }
 
     //check user is new or not.
-    const existingUser = await User.findOne({
+    const userExists = await User.findOne({
         $or: [{username}, {email}]    
     })
-    if(existingUser){
+    if(userExists){
         throw new ApiError(409, "Username or email already existed");
+    }
+    const storeExists = await Store.findOne({ name: storeName });
+    if(storeExists){
+        throw new ApiError(409, "Store with this name already exists");
     }
 
     //hashing password
@@ -85,7 +89,12 @@ export const verifyAdminNewStore = asyncHandler( async(req, res) => {
     };
 
     //generate unique store code.
-    const code = crypto.randomBytes(4).toString("hex"); //8-char code
+    let code;
+    let exists = true;
+    while (exists) {
+        code = crypto.randomBytes(4).toString("hex");
+        exists = await Store.findOne({ code });
+    }    
 
     //Store or user create krna
     const newStore = await Store.create({
@@ -108,7 +117,7 @@ export const verifyAdminNewStore = asyncHandler( async(req, res) => {
     newStore.owner = newUser._id;
     await newStore.save();
 
-    res.status(200).json(new ApiResponse(201, "Store and Admin created successfully."));
+    res.status(201).json(new ApiResponse(201, "Store and Admin created successfully."));
 });
 
 export const signupWithExistingStore = asyncHandler( async(req, res) => {
@@ -135,8 +144,8 @@ export const signupWithExistingStore = asyncHandler( async(req, res) => {
     }
 
     //Check does user already exists.
-    const existingUser = await User.findOne({ $or: [{username}, {email}], store: store._id});
-    if (existingUser) {
+    const userExists = await User.findOne({ $or: [{username}, {email}], store: store._id});
+    if (userExists) {
         throw new ApiError(409, "Username or email already exists in store");
     }
 
@@ -171,4 +180,18 @@ export const signupWithExistingStore = asyncHandler( async(req, res) => {
       return res.status(200).json(new ApiResponse(200, "Verification email sent to store owner for approval."));
 });
 
-export const verifyJoinExistingStore = asyncHandler(() => {});
+export const verifyJoinExistingStore = asyncHandler( async(req, res) => {
+    //req mai sai token nikala
+    const { token } = req.query;
+
+    //us token ko decode kia
+    const signupData = jwt.verify(token, process.env.JWT_SECRET);
+    const {username, fullname, email, password, role, storeId} = signupData;
+
+    //data ko check kia empty tou nhi
+    if (!username || !fullname || !email || !password || !role || !storeId) {
+        throw new ApiError(400, "Token is missing required fields");
+    }
+
+    const userExists = await User.findOne({ $or: [{username}, {email}], store: storeId._id});    
+});
