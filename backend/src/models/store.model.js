@@ -17,7 +17,7 @@ const storeSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        lowercase: true,
+        uppercase: true,
         trim: true,
     },
     //One store owner

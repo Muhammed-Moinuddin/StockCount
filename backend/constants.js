@@ -9,6 +9,11 @@ export const STOCK_MOVEMENT_REASON = Object.freeze({
     ADJUSTMENT: "ADJUSTMENT"
 });
 
+export const STORE_TYPE = Object.freeze({
+    NEW_STORE: "NEW_STORE",
+    EXISTING_STORE: "EXISTING_STORE"
+});
+
 export const TRANSACTION_TYPE = Object.freeze({
     SALE: "SALE",
     PURCHASE: "PURCHASE"
