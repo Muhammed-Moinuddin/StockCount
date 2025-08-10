@@ -23,6 +23,6 @@ const FormInput = ({ label, ...props }: FormInputProps) => {
         margin="normal"
       />
     );
-  };
+};
   
 export default FormInput;
